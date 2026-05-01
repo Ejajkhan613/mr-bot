@@ -1,0 +1,490 @@
+<!doctype html>
+<html>
+    <head>
+        <title>Multi-Bot Interaction System</title>
+        <style>
+            body {
+                background: #1a1a1a;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: flex-end;
+                height: 100vh;
+                margin: 0;
+                overflow: hidden;
+                font-family: sans-serif;
+            }
+
+            .scene {
+                perspective: 800px;
+                width: 100%;
+                height: 100%;
+                position: relative;
+            }
+
+            .bot {
+                position: absolute;
+                transform-style: preserve-3d;
+                transition: transform 0.1s linear, filter 0.3s;
+                cursor: grab;
+                transform-origin: center bottom;
+                width: 150px; /* Reference width for positioning */
+                touch-action: none; /* Prevents scrolling while dragging */
+            }
+
+            .bot:active {
+                cursor: grabbing;
+            }
+
+            .bot.dragging {
+                transition: none; /* Instant movement during drag */
+                z-index: 1000;
+            }
+
+            .bot.facing-left .head, .bot.facing-left .body {
+                transform: scaleX(-1);
+            }
+
+            /* SELECTION INDICATOR */
+            .bot.selected {
+                filter: drop-shadow(0 0 15px #00f2ff);
+            }
+
+            /* HEAD */
+            .head {
+                width: 120px;
+                height: 120px;
+                background: #ccc;
+                border-radius: 50%;
+                position: relative;
+                margin: auto;
+                transition: background 0.5s;
+                z-index: 2;
+            }
+
+            /* EYES */
+            .eye {
+                width: 15px;
+                height: 15px;
+                background: black;
+                border-radius: 50%;
+                position: absolute;
+                top: 40px;
+            }
+
+            .eye.left { left: 30px; }
+            .eye.right { right: 30px; }
+
+            /* BODY */
+            .body {
+                width: 150px;
+                height: 180px;
+                background: #ccc;
+                border-radius: 80px;
+                margin: -20px auto 0;
+                transition: background 0.5s;
+                position: relative;
+                z-index: 1;
+            }
+
+            /* ARMS */
+            .arm {
+                width: 40px;
+                height: 100px;
+                background: #ccc;
+                border-radius: 20px;
+                position: absolute;
+                top: 100px;
+                transition: background 0.5s, transform 0.3s;
+            }
+
+            .arm.left { left: -30px; transform-origin: top center; }
+            .arm.right { right: -30px; transform-origin: top center; }
+
+            /* MOODS */
+            .bot.happy .head, .bot.happy .body, .bot.happy .arm { background: #ffd700; }
+            .bot.sad .head, .bot.sad .body, .bot.sad .arm { background: #4a5568; }
+
+            /* ANIMATIONS */
+            
+            /* BLINK */
+            .blink .eye {
+                animation: blinkAnim 0.3s;
+            }
+            @keyframes blinkAnim {
+                0%, 100% { transform: scaleY(1); }
+                50% { transform: scaleY(0.1); }
+            }
+
+            /* JUMP */
+            .jump {
+                animation: jumpAnim 0.5s ease-out;
+            }
+            @keyframes jumpAnim {
+                0%, 100% { transform: translate(var(--bx), var(--by)) translateY(0); }
+                50% { transform: translate(var(--bx), var(--by)) translateY(-100px); }
+            }
+
+            /* WAVE */
+            .wave .arm.right {
+                animation: waveAnim 0.6s infinite ease-in-out;
+            }
+            @keyframes waveAnim {
+                0%, 100% { transform: rotate(0deg); }
+                50% { transform: rotate(-110deg); }
+            }
+
+            /* HI-FIVE */
+            .hifi .arm.right {
+                animation: hifiAnim 0.8s ease-in-out;
+            }
+            @keyframes hifiAnim {
+                0% { transform: rotate(0deg); }
+                50% { transform: rotate(-130deg) scale(1.2); }
+                100% { transform: rotate(0deg); }
+            }
+
+            /* SPEECH BUBBLE */
+            .speech-bubble {
+                position: absolute;
+                top: -60px;
+                left: 50%;
+                transform: translateX(-50%);
+                background: white;
+                padding: 8px 15px;
+                border-radius: 15px;
+                font-weight: bold;
+                box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+                pointer-events: none;
+                white-space: nowrap;
+                z-index: 10;
+                animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            }
+            @keyframes popIn {
+                0% { transform: translateX(-50%) scale(0); }
+                100% { transform: translateX(-50%) scale(1); }
+            }
+
+            /* UI CONTROLS */
+            .controls {
+                background: rgba(255, 255, 255, 0.1);
+                padding: 20px;
+                border-radius: 20px 20px 0 0;
+                display: flex;
+                gap: 10px;
+                backdrop-filter: blur(10px);
+                border: 1px solid rgba(255, 255, 255, 0.1);
+                z-index: 100;
+            }
+
+            button {
+                padding: 10px 20px;
+                border: none;
+                border-radius: 10px;
+                background: #3b82f6;
+                color: white;
+                font-weight: bold;
+                cursor: pointer;
+                transition: transform 0.1s, background 0.2s;
+            }
+
+            button:hover { background: #2563eb; transform: translateY(-2px); }
+            button:active { transform: translateY(0); }
+            button.add-btn { background: #10b981; }
+            button.add-btn:hover { background: #059669; }
+            button.delete-btn { background: #ef4444; }
+            button.delete-btn:hover { background: #dc2626; }
+
+            .hint {
+                color: #94a3b8;
+                font-size: 0.8rem;
+                margin-bottom: 10px;
+                text-align: center;
+                line-height: 1.4;
+            }
+        </style>
+    </head>
+
+    <body>
+        <div class="hint">
+            <b>Controls (Selected Bot):</b> WASD to Move | Space: Jump | B: Blink | V: Wave | H: Say Hi | M: Mood | Del: Delete<br>
+            Click/Drag bots to move | Click scene to deselect
+        </div>
+        
+        <div class="scene" id="scene">
+            <!-- Bots will be injected here -->
+        </div>
+
+        <div class="controls">
+            <button class="add-btn" onclick="addBot()">Add Bot</button>
+            <button class="delete-btn" onclick="deleteSelected()">Delete Selected</button>
+            <button onclick="performAction('jump')">Jump</button>
+            <button onclick="performAction('blink')">Blink</button>
+            <button onclick="performAction('wave')">Wave</button>
+            <button onclick="performAction('sayHi')">Say Hi</button>
+            <button onclick="performAction('toggleMood')">Change Mood</button>
+        </div>
+
+        <script>
+            const scene = document.getElementById("scene");
+            let bots = [];
+            let selectedBot = null;
+
+            class Bot {
+                constructor() {
+                    this.id = Date.now() + Math.random();
+                    this.moods = ['neutral', 'happy', 'sad'];
+                    this.currentMoodIndex = 0;
+                    
+                    // Find a position that doesn't overlap too much
+                    const pos = this.findSpawnPosition();
+                    this.x = pos.x;
+                    this.y = pos.y;
+                    
+                    this.element = this.createBotElement();
+                    this.updateTransform();
+                    this.startIdleBlinking();
+                    
+                    this.select();
+                }
+
+                findSpawnPosition() {
+                    let attempt = 0;
+                    let bestX, bestY;
+                    while (attempt < 10) {
+                        const tx = Math.random() * (window.innerWidth - 200) + 25;
+                        const ty = Math.random() * (window.innerHeight - 400) + 50;
+                        
+                        // Check distance from other bots
+                        const tooClose = bots.some(b => {
+                            const dist = Math.sqrt(Math.pow(b.x - tx, 2) + Math.pow(b.y - ty, 2));
+                            return dist < 180;
+                        });
+
+                        if (!tooClose || attempt === 9) {
+                            return { x: tx, y: ty };
+                        }
+                        attempt++;
+                    }
+                }
+
+                createBotElement() {
+                    const botDiv = document.createElement("div");
+                    botDiv.className = "bot";
+                    botDiv.innerHTML = `
+                        <div class="head">
+                            <div class="eye left"></div>
+                            <div class="eye right"></div>
+                        </div>
+                        <div class="body"></div>
+                        <div class="arm left"></div>
+                        <div class="arm right"></div>
+                    `;
+
+                    // Dragging State
+                    let isDragging = false;
+                    let startX, startY;
+
+                    botDiv.onpointerdown = (e) => {
+                        e.stopPropagation();
+                        this.select();
+                        
+                        isDragging = true;
+                        startX = e.clientX - this.x;
+                        startY = e.clientY - this.y;
+                        
+                        botDiv.classList.add("dragging");
+                        botDiv.setPointerCapture(e.pointerId);
+                    };
+
+                    botDiv.onpointermove = (e) => {
+                        if (!isDragging) return;
+                        
+                        this.x = e.clientX - startX;
+                        this.y = e.clientY - startY;
+                        this.updateTransform();
+                    };
+
+                    botDiv.onpointerup = (e) => {
+                        if (!isDragging) return;
+                        isDragging = false;
+                        botDiv.classList.remove("dragging");
+                        botDiv.releasePointerCapture(e.pointerId);
+                    };
+
+                    scene.appendChild(botDiv);
+                    return botDiv;
+                }
+
+                select() {
+                    if (selectedBot) {
+                        selectedBot.element.classList.remove("selected");
+                    }
+                    selectedBot = this;
+                    this.element.classList.add("selected");
+                }
+
+                remove() {
+                    this.element.style.transform += " scale(0)";
+                    this.element.style.opacity = "0";
+                    setTimeout(() => {
+                        this.element.remove();
+                        bots = bots.filter(b => b.id !== this.id);
+                        if (selectedBot === this) selectedBot = null;
+                    }, 300);
+                }
+
+                move(dx, dy) {
+                    const speed = 15;
+                    this.x += dx * speed;
+                    this.y += dy * speed;
+                    
+                    // Boundary checks
+                    const margin = 50;
+                    this.x = Math.max(-margin, Math.min(window.innerWidth - 100, this.x));
+                    this.y = Math.max(-margin, Math.min(window.innerHeight - 300, this.y));
+                    
+                    this.updateTransform();
+                }
+
+                updateTransform() {
+                    // Using CSS variables to handle translation during animations like jump
+                    this.element.style.setProperty('--bx', `${this.x}px`);
+                    this.element.style.setProperty('--by', `${this.y}px`);
+                    this.element.style.transform = `translate(${this.x}px, ${this.y}px)`;
+                }
+
+                jump() {
+                    if (this.element.classList.contains('jump')) return;
+                    this.element.classList.add("jump");
+                    setTimeout(() => this.element.classList.remove("jump"), 500);
+                }
+
+                blink() {
+                    if (this.element.classList.contains('blink')) return;
+                    this.element.classList.add("blink");
+                    setTimeout(() => this.element.classList.remove("blink"), 300);
+                }
+
+                wave() {
+                    this.element.classList.toggle("wave");
+                }
+
+                sayHi() {
+                    const messages = ["Hello!", "Hi there!", "Beep boop!", "Greetings!", "Yo!"];
+                    const msg = messages[Math.floor(Math.random() * messages.length)];
+                    
+                    const bubble = document.createElement("div");
+                    bubble.className = "speech-bubble";
+                    bubble.innerText = msg;
+                    this.element.appendChild(bubble);
+                    
+                    setTimeout(() => {
+                        bubble.style.animation = "popIn 0.3s reverse forwards";
+                        setTimeout(() => bubble.remove(), 300);
+                    }, 2000);
+                }
+
+                toggleMood() {
+                    this.element.classList.remove(this.moods[this.currentMoodIndex]);
+                    this.currentMoodIndex = (this.currentMoodIndex + 1) % this.moods.length;
+                    const newMood = this.moods[this.currentMoodIndex];
+                    if (newMood !== 'neutral') {
+                        this.element.classList.add(newMood);
+                    }
+                }
+
+                interactWith(other) {
+                    // Face each other
+                    if (this.x < other.x) {
+                        this.element.classList.remove("facing-left");
+                        other.element.classList.add("facing-left");
+                    } else {
+                        this.element.classList.add("facing-left");
+                        other.element.classList.remove("facing-left");
+                    }
+
+                    // synchronized Hi-Five
+                    setTimeout(() => {
+                        this.element.classList.add("hifi");
+                        other.element.classList.add("hifi");
+                        
+                        const bubble = document.createElement("div");
+                        bubble.className = "speech-bubble";
+                        bubble.innerText = "High Five! ✋";
+                        this.element.appendChild(bubble);
+
+                        setTimeout(() => {
+                            this.element.classList.remove("hifi");
+                            other.element.classList.remove("hifi");
+                            bubble.remove();
+                        }, 800);
+                    }, 500);
+                }
+
+                startIdleBlinking() {
+                    const blinkLoop = () => {
+                        this.blink();
+                        setTimeout(blinkLoop, 2000 + Math.random() * 5000);
+                    };
+                    setTimeout(blinkLoop, Math.random() * 3000);
+                }
+            }
+
+            // Global Functions
+            function addBot() {
+                const newBot = new Bot();
+                const otherBots = bots.filter(b => b.id !== newBot.id);
+                
+                if (otherBots.length > 0) {
+                    // Find the nearest bot to interact with
+                    const nearest = otherBots.reduce((prev, curr) => {
+                        const distPrev = Math.sqrt(Math.pow(prev.x - newBot.x, 2) + Math.pow(prev.y - newBot.y, 2));
+                        const distCurr = Math.sqrt(Math.pow(curr.x - newBot.x, 2) + Math.pow(curr.y - newBot.y, 2));
+                        return distPrev < distCurr ? prev : curr;
+                    });
+
+                    newBot.interactWith(nearest);
+                }
+                bots.push(newBot);
+            }
+
+            // Keyboard Controls
+            window.addEventListener("keydown", (e) => {
+                if (!selectedBot) return;
+
+                const key = e.key.toLowerCase();
+                
+                // Movement
+                if (['w','a','s','d'].includes(key)) {
+                    const dx = key === 'a' ? -1 : (key === 'd' ? 1 : 0);
+                    const dy = key === 'w' ? -1 : (key === 's' ? 1 : 0);
+                    selectedBot.move(dx, dy);
+                    return;
+                }
+
+                // Actions
+                switch(key) {
+                    case ' ': e.preventDefault(); selectedBot.jump(); break;
+                    case 'b': selectedBot.blink(); break;
+                    case 'v': selectedBot.wave(); break;
+                    case 'h': selectedBot.sayHi(); break;
+                    case 'm': selectedBot.toggleMood(); break;
+                    case 'delete': 
+                    case 'backspace': deleteSelected(); break;
+                }
+            });
+
+            // Deselect on clicking empty scene
+            scene.onclick = () => {
+                if (selectedBot) {
+                    selectedBot.element.classList.remove("selected");
+                    selectedBot = null;
+                }
+            };
+
+            // Initialize with one bot
+            addBot();
+        </script>
+    </body>
+</html>
