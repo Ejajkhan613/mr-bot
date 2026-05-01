@@ -1,0 +1,43 @@
+{
+    "projects": [
+        {
+            "id": "spaceship",
+            "name": "Starship 'Gemini'",
+            "minBots": 3,
+            "duration": 12000,
+            "steps": [
+                "Assembling titanium hull...",
+                "Igniting plasma core...",
+                "Hyperdrive synchronized!"
+            ],
+            "html": "<div class='built-object spaceship'><div class='hull'></div><div class='thruster'></div><div class='cockpit'></div></div>",
+            "css": ".built-object.spaceship { width: 100px; height: 160px; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0); transition: all 1s; z-index: 5; }\n.built-object.spaceship .hull { width: 60px; height: 120px; background: #94a3b8; clip-path: polygon(50% 0%, 100% 80%, 100% 100%, 0% 100%, 0% 80%); margin: auto; box-shadow: inset 0 0 20px #000; }\n.built-object.spaceship .thruster { width: 40px; height: 20px; background: #38bdf8; margin: -5px auto; border-radius: 0 0 10px 10px; animation: glowPulse 0.2s infinite alternate; }\n.built-object.spaceship .cockpit { width: 30px; height: 30px; background: #000; position: absolute; top: 40px; left: 35px; border-radius: 50% 50% 0 0; border: 2px solid #38bdf8; }\n@keyframes glowPulse { from { box-shadow: 0 0 5px #38bdf8; } to { box-shadow: 0 0 30px #38bdf8; } }"
+        },
+        {
+            "id": "portal",
+            "name": "Void Gate",
+            "minBots": 2,
+            "duration": 8000,
+            "steps": [
+                "Stabilizing exotic matter...",
+                "Folding spacetime coordinates...",
+                "Event horizon established."
+            ],
+            "html": "<div class='built-object portal'><div class='ring'></div><div class='vortex'></div></div>",
+            "css": ".built-object.portal { width: 150px; height: 150px; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0); transition: all 1s; z-index: 5; }\n.built-object.portal .ring { width: 100%; height: 100%; border: 8px solid #8b5cf6; border-radius: 50%; box-shadow: 0 0 30px #8b5cf6; animation: rotateRing 4s linear infinite; }\n.built-object.portal .vortex { width: 80%; height: 80%; background: radial-gradient(circle, #000, #4c1d95); border-radius: 50%; position: absolute; top: 10%; left: 10%; animation: pulseVortex 2s infinite alternate; }\n@keyframes rotateRing { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }\n@keyframes pulseVortex { from { transform: scale(0.9); opacity: 0.5; } to { transform: scale(1.1); opacity: 1; } }"
+        },
+        {
+            "id": "energy-pylon",
+            "name": "Zero-Point Pylon",
+            "minBots": 2,
+            "duration": 9000,
+            "steps": [
+                "Erecting carbon lattice...",
+                "Channeling vacuum energy...",
+                "Pylon Online."
+            ],
+            "html": "<div class='built-object pylon'><div class='base-plate'></div><div class='beam'></div></div>",
+            "css": ".built-object.pylon { width: 60px; height: 200px; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0); transition: all 1s; z-index: 5; }\n.built-object.pylon .base-plate { width: 100%; height: 20px; background: #334155; position: absolute; bottom: 0; }\n.built-object.pylon .beam { width: 10px; height: 180px; background: #fbbf24; margin: auto; border-radius: 5px; box-shadow: 0 0 20px #fbbf24; animation: beamHum 0.1s infinite; }\n@keyframes beamHum { 0%, 100% { opacity: 0.8; width: 10px; } 50% { opacity: 1; width: 14px; } }"
+        }
+    ]
+}
