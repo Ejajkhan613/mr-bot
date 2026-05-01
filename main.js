@@ -5,6 +5,7 @@ const scene = document.getElementById("scene");
 const bots = [];
 let selectedBot = null;
 let projectData = [];
+let isProjectActive = false;
 
 // Expose for bot.js to access the array for socializing
 window.globalBots = bots;
@@ -21,6 +22,7 @@ async function loadProjectData() {
 }
 
 async function startCollaborativeProject() {
+    if (isProjectActive) return;
     if (bots.length < 2) {
         alert("At least 2 units required for collaboration.");
         return;
@@ -38,6 +40,7 @@ async function startCollaborativeProject() {
     const bar = document.getElementById("progressBar");
     const countLabel = document.getElementById("workerCount");
 
+    isProjectActive = true;
     progressUI.style.display = "block";
     nameLabel.innerText = project.name;
     countLabel.innerText = `Active Units: ${bots.length}`;
@@ -136,6 +139,7 @@ async function startCollaborativeProject() {
     
     progressUI.style.display = "none";
     bar.style.width = "0%";
+    isProjectActive = false;
     
     bots.forEach(bot => {
         bot.isBusyWorking = false;

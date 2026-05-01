@@ -65,6 +65,7 @@ export class Bot {
         let startX, startY;
 
         botDiv.onpointerdown = (e) => {
+            if (this.isBusyWorking) return;
             e.stopPropagation();
             this.select();
             isDragging = true;
@@ -75,7 +76,7 @@ export class Bot {
         };
 
         botDiv.onpointermove = (e) => {
-            if (!isDragging) return;
+            if (!isDragging || this.isBusyWorking) return;
             this.x = e.clientX - startX;
             this.y = e.clientY - startY;
             this.updateTransform();
@@ -89,6 +90,7 @@ export class Bot {
         };
 
         botDiv.onclick = (e) => {
+            if (this.isBusyWorking) return;
             e.stopPropagation();
             this.select();
         };
@@ -113,6 +115,7 @@ export class Bot {
     }
 
     move(dx, dy) {
+        if (this.isBusyWorking) return;
         const speed = 20; // Slightly faster movement for sleek bots
         this.x += dx * speed;
         this.y += dy * speed;
@@ -165,7 +168,7 @@ export class Bot {
 
     eat() {
         // Rebranded to Recharging
-        if (this.element.classList.contains('recharging')) return;
+        if (this.element.classList.contains('recharging') || this.isBusyWorking) return;
         
         if (this.energy > 70 && !this.element.classList.contains('depleted')) {
             this.say('full'); // Still works logically, custom phrases can be added to full.json
@@ -198,7 +201,7 @@ export class Bot {
     }
 
     jump() {
-        if (this.element.classList.contains('jump')) return;
+        if (this.element.classList.contains('jump') || this.isBusyWorking) return;
         this.element.classList.add("jump");
         setTimeout(() => this.element.classList.remove("jump"), 800); // Matched to CSS
     }
@@ -210,11 +213,12 @@ export class Bot {
     }
 
     wave() {
+        if (this.isBusyWorking) return;
         this.element.classList.toggle("wave");
     }
 
     say(category) {
-        if (this.element.classList.contains("talking")) return;
+        if (this.element.classList.contains("talking") || this.isBusyWorking) return;
         const pool = talkData[category] || ["..."];
         const msg = pool[Math.floor(Math.random() * pool.length)];
         this.sayCustom(msg);
